@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin sign in — READ RIGHT</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/store.css') }}">
+</head>
+<body>
+    <header class="store-top">
+        <a class="brand" href="/admin/login">READ<em>RIGHT</em>
+            <span class="admin-tag">Admin</span>
+        </a>
+    </header>
+    <main>
+        <section class="auth-wrap">
+            <div class="auth-card">
+                <span class="eyebrow">Store administration</span>
+                <h1>Admin sign in</h1>
+                <form id="admin-auth-form" novalidate>
+                    <label class="field">
+                        <span>Admin password</span>
+                        <input type="password" id="admin-password" autocomplete="current-password"
+                               required placeholder="••••••••">
+                    </label>
+                    <p class="form-error" id="admin-auth-error" hidden></p>
+                    <button class="btn wide" id="admin-auth-submit" type="submit">Sign in</button>
+                </form>
+                <p class="auth-hint">Set ADMIN_PASSWORD in the environment to change the dev default.</p>
+            </div>
+        </section>
+    </main>
+    <script>
+        document.getElementById('admin-auth-form').addEventListener('submit', event => {
+            event.preventDefault();
+            const errorBox = document.getElementById('admin-auth-error');
+            const submitBtn = document.getElementById('admin-auth-submit');
+            errorBox.hidden = true;
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Signing in…';
+
+            fetch('/admin/login', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({password: document.getElementById('admin-password').value}),
+            })
+                .then(response => response.json().then(data => {
+                    if (!response.ok) throw new Error(data.error || `HTTP ${response.status}`);
+                    return data;
+                }))
+                .then(() => { window.location.href = '/admin'; })
+                .catch(err => {
+                    errorBox.textContent = err.message;
+                    errorBox.hidden = false;
+                })
+                .finally(() => {
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = 'Sign in';
+                });
+        });
+    </script>
+</body>
+</html>

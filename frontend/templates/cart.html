@@ -1,0 +1,86 @@
+{% extends 'base.html' %}
+
+{% block title %}Your cart — READ RIGHT{% endblock %}
+
+{% block content %}
+<div class="crumb"><a href="/">Home</a> / Cart</div>
+<div class="cat-head">
+    <h1>Your cart</h1>
+    {% if cart and cart['items'] %}<span class="count">{{ cart['count'] }} item{{ 's' if cart['count'] != 1 }}</span>{% endif %}
+</div>
+
+{% if load_error %}
+    <p class="empty-state">The cart service is temporarily unavailable — {{ load_error }}</p>
+{% elif not cart or not cart['items'] %}
+    <div class="empty-state big">
+        <p>Your cart is empty.</p>
+        <a class="btn" href="/">Browse the shelf</a>
+    </div>
+{% else %}
+<section class="cart-layout">
+    <div class="cart-list">
+        {% for item in cart['items'] %}
+        <div class="cart-row" data-book-id="{{ item.book_id }}">
+            <a href="/books/{{ item.book_id }}">
+                <img class="cover small" src="data:image/jpeg;base64,{{ item.cover_image }}"
+                     alt="Cover of {{ item.title }}">
+            </a>
+            <div class="cart-row-info">
+                <a class="cart-title" href="/books/{{ item.book_id }}">{{ item.title }}</a>
+                <p class="by">{{ item.author }}</p>
+                <span class="price">${{ '%.2f'|format(item.price) }}</span>
+            </div>
+            <div class="cart-row-actions">
+                <div class="qty-stepper" aria-label="Quantity for {{ item.title }}">
+                    <button type="button" class="qty-change" data-delta="-1" aria-label="Decrease">−</button>
+                    <span>{{ item.qty }}</span>
+                    <button type="button" class="qty-change" data-delta="1" data-max="{{ item.stock }}" aria-label="Increase">+</button>
+                </div>
+                <span class="price line-total">${{ '%.2f'|format(item.line_total) }}</span>
+                <button type="button" class="remove-btn" aria-label="Remove {{ item.title }}">Remove</button>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <aside class="summary-card">
+        <h3>Order summary</h3>
+        <dl class="summary-lines">
+            <dt>Subtotal</dt><dd>${{ '%.2f'|format(cart['subtotal']) }}</dd>
+            <dt>Shipping</dt><dd>{% if cart['shipping'] == 0 %}Free{% else %}${{ '%.2f'|format(cart['shipping']) }}{% endif %}</dd>
+            <dt class="total">Total</dt><dd class="total">${{ '%.2f'|format(cart['total']) }}</dd>
+        </dl>
+        {% if cart['shipping'] > 0 %}
+        <p class="summary-note">Free shipping on orders over $25.</p>
+        {% endif %}
+        <a class="btn wide" href="/checkout">Proceed to checkout</a>
+    </aside>
+</section>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Quantity +/- and remove — each change hits the cart API then refreshes the page
+    document.querySelectorAll('.cart-row').forEach(row => {
+        const bookId = row.dataset.bookId;
+        const qtySpan = row.querySelector('.qty-stepper span');
+
+        row.querySelectorAll('.qty-change').forEach(btn => btn.addEventListener('click', () => {
+            let qty = parseInt(qtySpan.textContent, 10) + parseInt(btn.dataset.delta, 10);
+            const max = parseInt(btn.dataset.max || '99', 10);
+            if (qty > max) { showToast(`Only ${max} in stock`); return; }
+            fetch(`/api/cart/${bookId}`, {
+                method: 'PUT',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({qty: qty}),
+            }).then(() => window.location.reload());
+        }));
+
+        row.querySelector('.remove-btn').addEventListener('click', () => {
+            fetch(`/api/cart/${bookId}`, {method: 'DELETE'})
+                .then(() => window.location.reload());
+        });
+    });
+</script>
+{% endblock %}

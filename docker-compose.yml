@@ -1,0 +1,56 @@
+version: '3.8'
+
+services:
+  # TIER 1: The Secure Database Engine
+  mongodb-backend:
+    image: mongo:4.4.18
+    container_name: mongodb-backend
+    restart: always
+    volumes:
+      - mongo-data:/data/db
+      - ./backend/database_backup:/backup
+      - ./backend/init-restore.sh:/docker-entrypoint-initdb.d/init-restore.sh:ro
+    networks:
+      - bookstore-mesh
+
+  # TIER 2: Headless Data & GenAI Brain
+  bookstore-backend:
+    build: ./backend  # Points directly to the backend subfolder Dockerfile
+    container_name: bookstore-backend-service
+    restart: always
+    environment:
+      - MONGO_URI=mongodb://mongodb-backend:27017/bookstore
+      # ONLY the backend receives the decoupled Gemini credential!
+      - GEMINI_API_KEY
+      # Shared with the frontend below — the backend rejects any request missing it
+      - INTERNAL_SERVICE_TOKEN
+    networks:
+      - bookstore-mesh
+    depends_on:
+      mongodb-backend:
+        condition: service_started # Standard wait condition
+
+  # TIER 3: The Public Presentation Layer
+  bookstore-frontend:
+    build: ./frontend # Points directly to the frontend subfolder Dockerfile
+    container_name: bookstore-frontend-service
+    restart: always
+    ports:
+      - "5001:5001"
+    environment:
+      - CATALOG_API_URL=http://bookstore-backend:8000
+      # No defaults — the app refuses to start if these aren't set on the host
+      - SECRET_KEY
+      - ADMIN_PASSWORD
+      - INTERNAL_SERVICE_TOKEN
+    networks:
+      - bookstore-mesh
+    depends_on:
+      - bookstore-backend
+
+networks:
+  bookstore-mesh:
+    driver: bridge
+
+volumes:
+  mongo-data:

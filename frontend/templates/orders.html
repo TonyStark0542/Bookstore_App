@@ -1,0 +1,69 @@
+{% extends 'base.html' %}
+
+{% block title %}Track my orders — READ RIGHT{% endblock %}
+
+{% block content %}
+<div class="crumb"><a href="/">Home</a> / Orders</div>
+<div class="cat-head">
+    <h1>Track my orders</h1>
+    {% if orders %}<span class="count">{{ orders|length }} order{{ 's' if orders|length != 1 }}</span>{% endif %}
+</div>
+
+{% if load_error %}
+    <p class="empty-state">Order tracking is temporarily unavailable — {{ load_error }}</p>
+{% elif not orders %}
+    <div class="empty-state big">
+        <p>You haven't placed any orders yet.</p>
+        <a class="btn" href="/">Browse the shelf</a>
+    </div>
+{% else %}
+<div class="orders-list">
+    {% for order in orders %}
+    <article class="order-card">
+        <header class="order-head">
+            <div>
+                <h3>Order #{{ order.short_id }}</h3>
+                <p class="order-meta">{{ order.placed_at }} · {{ order.payment.detail or order.payment.method|upper }}
+                    · {{ order.payment.txn_id }}</p>
+            </div>
+            <div class="order-head-right">
+                <span class="pill {{ 'in' if order.payment.status == 'PAID' else 'low' }}">
+                    {{ 'Paid' if order.payment.status == 'PAID' else 'Pay on delivery' }}
+                </span>
+                <span class="price">${{ '%.2f'|format(order.total) }}</span>
+            </div>
+        </header>
+
+        <ol class="timeline">
+            {% for stage in order.stages %}
+            <li class="{{ 'done' if loop.index0 < order.stage_index }}{{ ' current' if loop.index0 == order.stage_index }}">
+                <span class="dot"></span>
+                <span class="stage-name">{{ stage }}</span>
+            </li>
+            {% endfor %}
+        </ol>
+
+        <ul class="order-items">
+            {% for item in order['items'] %}
+            <li>
+                <a href="/books/{{ item.book_id }}">{{ item.title }}</a>
+                <span class="by">{{ item.author }} · ×{{ item.qty }}</span>
+                <span class="price">${{ '%.2f'|format(item.line_total) }}</span>
+            </li>
+            {% endfor %}
+        </ul>
+    </article>
+    {% endfor %}
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // While any order hasn't reached "Delivered" yet, refresh periodically so an
+    // admin advancing the order elsewhere shows up here without a manual reload.
+    {% if orders and orders|selectattr('stage_index', 'lt', orders[0].stages|length - 1)|list|length > 0 %}
+    setTimeout(() => window.location.reload(), 7000);
+    {% endif %}
+</script>
+{% endblock %}

@@ -1,0 +1,7 @@
+<nav class="store-nav" aria-label="Categories">
+    <a href="/" class="{{ 'on' if request.path == '/' else '' }}">Home</a>
+    {% for cat in categories %}
+    <a href="/category/{{ cat }}"
+       class="{{ 'on' if request.path == '/category/' + cat else '' }}">{{ cat }}</a>
+    {% endfor %}
+</nav>

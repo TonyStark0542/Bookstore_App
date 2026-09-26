@@ -1,0 +1,96 @@
+{% extends 'base.html' %}
+
+{% block title %}Sign in — READ RIGHT{% endblock %}
+
+{% block content %}
+<section class="auth-wrap">
+    <div class="auth-card">
+        <span class="eyebrow">Welcome to READ RIGHT</span>
+        <h1 id="auth-title">Sign in to your account</h1>
+
+        <div class="auth-tabs" role="tablist">
+            <button class="auth-tab on" id="tab-login" type="button">Sign in</button>
+            <button class="auth-tab" id="tab-register" type="button">Create account</button>
+        </div>
+
+        <form id="auth-form" novalidate>
+            <label class="field" id="name-field" hidden>
+                <span>Full name</span>
+                <input type="text" id="auth-name" autocomplete="name" placeholder="Jane Reader">
+            </label>
+            <label class="field">
+                <span>Email</span>
+                <input type="email" id="auth-email" autocomplete="email" required
+                       placeholder="you@example.com">
+            </label>
+            <label class="field">
+                <span>Password</span>
+                <input type="password" id="auth-password" autocomplete="current-password" required
+                       minlength="6" placeholder="At least 6 characters">
+            </label>
+            <p class="form-error" id="auth-error" hidden></p>
+            <button class="btn wide" id="auth-submit" type="submit">Sign in</button>
+        </form>
+        <p class="auth-hint">Your password is stored only as a salted hash in MongoDB.</p>
+    </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const NEXT_URL = {{ next_url|tojson }};
+    let mode = 'login';
+
+    const tabLogin = document.getElementById('tab-login');
+    const tabRegister = document.getElementById('tab-register');
+    const nameField = document.getElementById('name-field');
+    const title = document.getElementById('auth-title');
+    const submitBtn = document.getElementById('auth-submit');
+    const errorBox = document.getElementById('auth-error');
+
+    function setMode(next) {
+        mode = next;
+        const login = mode === 'login';
+        tabLogin.classList.toggle('on', login);
+        tabRegister.classList.toggle('on', !login);
+        nameField.hidden = login;
+        title.textContent = login ? 'Sign in to your account' : 'Create your account';
+        submitBtn.textContent = login ? 'Sign in' : 'Create account';
+        errorBox.hidden = true;
+    }
+    tabLogin.addEventListener('click', () => setMode('login'));
+    tabRegister.addEventListener('click', () => setMode('register'));
+
+    document.getElementById('auth-form').addEventListener('submit', event => {
+        event.preventDefault();
+        errorBox.hidden = true;
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Please wait…';
+
+        const payload = {
+            email: document.getElementById('auth-email').value.trim(),
+            password: document.getElementById('auth-password').value,
+        };
+        if (mode === 'register') payload.name = document.getElementById('auth-name').value.trim();
+
+        fetch(`/api/auth/${mode}`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(payload),
+        })
+            .then(response => response.json().then(data => {
+                if (!response.ok) throw new Error(data.error || `HTTP ${response.status}`);
+                return data;
+            }))
+            .then(() => { window.location.href = NEXT_URL || '/'; })
+            .catch(err => {
+                errorBox.textContent = err.message;
+                errorBox.hidden = false;
+            })
+            .finally(() => {
+                submitBtn.disabled = false;
+                submitBtn.textContent = mode === 'login' ? 'Sign in' : 'Create account';
+            });
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,25 @@
+{% macro book_card(book) %}
+{% set stock = book.stock|default(0)|int %}
+<article class="card" data-book-card
+         data-search="{{ (book.title ~ ' ' ~ book.author)|lower }}">
+    <a class="card-link" href="/books/{{ book._id }}">
+        <img class="cover" src="data:image/jpeg;base64,{{ book.cover_image }}"
+             alt="Cover of {{ book.title }}" loading="lazy">
+        <h4>{{ book.title }}</h4>
+        <p class="by">{{ book.author }}</p>
+    </a>
+    <div class="row">
+        <span class="price">${{ '%.2f'|format(book.price|default(0)|float) }}</span>
+        {% if stock <= 0 %}
+            <span class="pill out">Out of stock</span>
+        {% elif stock < 5 %}
+            <span class="pill low">Low stock</span>
+        {% else %}
+            <span class="pill in">In stock</span>
+        {% endif %}
+    </div>
+    <button class="btn add-btn" data-book-id="{{ book._id }}" {% if stock <= 0 %}disabled{% endif %}>
+        Add to cart
+    </button>
+</article>
+{% endmacro %}

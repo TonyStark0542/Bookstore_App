@@ -1,0 +1,205 @@
+{% extends 'base.html' %}
+
+{% block title %}Checkout — READ RIGHT{% endblock %}
+
+{% block content %}
+<div class="crumb"><a href="/">Home</a> / <a href="/cart">Cart</a> / Checkout</div>
+<div class="cat-head"><h1>Checkout</h1></div>
+
+{% if load_error %}
+    <p class="empty-state">Checkout is temporarily unavailable — {{ load_error }}</p>
+{% else %}
+<section class="cart-layout" id="checkout-view">
+    <div class="pay-card">
+        <h3>Payment method</h3>
+        <p class="summary-note">This is a simulated gateway — no real payment is processed and no card details leave your browser unmasked.</p>
+
+        <div class="pay-tabs" role="tablist">
+            <button class="pay-tab on" type="button" data-method="card">💳 Card</button>
+            <button class="pay-tab" type="button" data-method="upi">📱 UPI</button>
+            <button class="pay-tab" type="button" data-method="cod">📦 Cash on delivery</button>
+        </div>
+
+        <form id="pay-form" novalidate>
+            <div class="pay-panel" id="panel-card">
+                <label class="field">
+                    <span>Card number</span>
+                    <input type="text" id="card-number" inputmode="numeric" placeholder="4242 4242 4242 4242" maxlength="19">
+                </label>
+                <label class="field">
+                    <span>Name on card</span>
+                    <input type="text" id="card-name" autocomplete="cc-name" placeholder="Jane Reader">
+                </label>
+                <div class="field-row">
+                    <label class="field">
+                        <span>Expiry</span>
+                        <input type="text" id="card-expiry" inputmode="numeric" placeholder="MM/YY" maxlength="5">
+                    </label>
+                    <label class="field">
+                        <span>CVV</span>
+                        <input type="password" id="card-cvv" inputmode="numeric" placeholder="•••" maxlength="4">
+                    </label>
+                </div>
+            </div>
+
+            <div class="pay-panel" id="panel-upi" hidden>
+                <label class="field">
+                    <span>UPI ID</span>
+                    <input type="text" id="upi-id" placeholder="yourname@bank">
+                </label>
+            </div>
+
+            <div class="pay-panel" id="panel-cod" hidden>
+                <p class="summary-note">Pay in cash when your order arrives. Payment status stays
+                    <strong>pending</strong> until delivery.</p>
+            </div>
+
+            <p class="form-error" id="pay-error" hidden></p>
+            <button class="btn wide" id="pay-btn" type="submit">Pay ${{ '%.2f'|format(cart['total']) }}</button>
+        </form>
+    </div>
+
+    <aside class="summary-card">
+        <h3>Order summary</h3>
+        <ul class="summary-items">
+            {% for item in cart['items'] %}
+            <li><span>{{ item.title }} × {{ item.qty }}</span><span>${{ '%.2f'|format(item.line_total) }}</span></li>
+            {% endfor %}
+        </ul>
+        <dl class="summary-lines">
+            <dt>Subtotal</dt><dd>${{ '%.2f'|format(cart['subtotal']) }}</dd>
+            <dt>Shipping</dt><dd>{% if cart['shipping'] == 0 %}Free{% else %}${{ '%.2f'|format(cart['shipping']) }}{% endif %}</dd>
+            <dt class="total">Total</dt><dd class="total">${{ '%.2f'|format(cart['total']) }}</dd>
+        </dl>
+    </aside>
+</section>
+
+<!-- Success view, revealed after the simulated payment settles -->
+<section class="success-view" id="success-view" hidden>
+    <div class="success-card">
+        <div class="success-mark" aria-hidden="true">
+            <svg viewBox="0 0 52 52" width="40" height="40">
+                <circle class="success-mark-circle" cx="26" cy="26" r="23" pathLength="1"/>
+                <path class="success-mark-check" fill="none" pathLength="1" d="M14 27l7 7 16-16"/>
+            </svg>
+        </div>
+        <h1>Order placed</h1>
+        <p id="success-detail"></p>
+        <p class="success-redirect">You can track it in the <strong>Track</strong> tab — redirecting you there…</p>
+    </div>
+</section>
+
+<!-- Processing overlay for the fake gateway -->
+<div class="pay-overlay" id="pay-overlay" hidden>
+    <div class="pay-overlay-card">
+        <div class="spinner" aria-hidden="true"></div>
+        <p id="overlay-text">Contacting payment gateway…</p>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+    let method = 'card';
+    const tabs = document.querySelectorAll('.pay-tab');
+    const panels = {card: 'panel-card', upi: 'panel-upi', cod: 'panel-cod'};
+
+    tabs.forEach(tab => tab.addEventListener('click', () => {
+        method = tab.dataset.method;
+        tabs.forEach(t => t.classList.toggle('on', t === tab));
+        Object.entries(panels).forEach(([m, id]) => {
+            document.getElementById(id).hidden = m !== method;
+        });
+        document.getElementById('pay-btn').textContent =
+            method === 'cod' ? 'Place order' : 'Pay {{ "$%.2f"|format(cart["total"]) }}';
+    }));
+
+    // Light input formatting for the card fields
+    const cardNumber = document.getElementById('card-number');
+    cardNumber.addEventListener('input', () => {
+        cardNumber.value = cardNumber.value.replace(/\D/g, '').slice(0, 16)
+            .replace(/(\d{4})(?=\d)/g, '$1 ');
+    });
+    const cardExpiry = document.getElementById('card-expiry');
+    cardExpiry.addEventListener('input', () => {
+        let v = cardExpiry.value.replace(/\D/g, '').slice(0, 4);
+        cardExpiry.value = v.length > 2 ? v.slice(0, 2) + '/' + v.slice(2) : v;
+    });
+
+    function validate() {
+        if (method === 'card') {
+            const digits = cardNumber.value.replace(/\s/g, '');
+            if (digits.length !== 16) return 'Enter a 16-digit card number.';
+            if (!document.getElementById('card-name').value.trim()) return 'Enter the name on the card.';
+            if (!/^\d{2}\/\d{2}$/.test(cardExpiry.value)) return 'Enter expiry as MM/YY.';
+            const month = parseInt(cardExpiry.value.slice(0, 2), 10);
+            if (month < 1 || month > 12) return 'Expiry month must be between 01 and 12.';
+            if (document.getElementById('card-cvv').value.length < 3) return 'Enter the 3-digit CVV.';
+        }
+        if (method === 'upi' && !/^[\w.\-]+@[\w\-]+$/.test(document.getElementById('upi-id').value.trim())) {
+            return 'Enter a valid UPI ID like yourname@bank.';
+        }
+        return null;
+    }
+
+    function paymentDetail() {
+        if (method === 'card') return 'Card ending ' + cardNumber.value.replace(/\s/g, '').slice(-4);
+        if (method === 'upi') return 'UPI · ' + document.getElementById('upi-id').value.trim();
+        return 'Cash on delivery';
+    }
+
+    document.getElementById('pay-form').addEventListener('submit', event => {
+        event.preventDefault();
+        const errorBox = document.getElementById('pay-error');
+        const problem = validate();
+        if (problem) {
+            errorBox.textContent = problem;
+            errorBox.hidden = false;
+            return;
+        }
+        errorBox.hidden = true;
+
+        // Simulated gateway theatre: ~6s of staged messages, then the real order API call
+        const overlay = document.getElementById('pay-overlay');
+        const overlayText = document.getElementById('overlay-text');
+        overlay.hidden = false;
+        const stages = method === 'cod'
+            ? ['Confirming your order…', 'Reserving your books…', 'Almost done…']
+            : ['Contacting payment gateway…', 'Verifying payment details…', 'Finalizing your order…'];
+        overlayText.textContent = stages[0];
+        setTimeout(() => { overlayText.textContent = stages[1]; }, 2200);
+        setTimeout(() => { overlayText.textContent = stages[2]; }, 4400);
+
+        const SETTLE_MS = 6000; // simulated processing time, ~5-7s
+        setTimeout(() => {
+            fetch('/api/orders', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({payment: {method: method, detail: paymentDetail()}}),
+            })
+                .then(response => response.json().then(data => {
+                    if (!response.ok) throw new Error(data.error || `HTTP ${response.status}`);
+                    return data;
+                }))
+                .then(data => {
+                    overlay.hidden = true;
+                    document.getElementById('checkout-view').hidden = true;
+                    document.getElementById('success-detail').textContent =
+                        `Order #${data.order_id.slice(-8).toUpperCase()} · ${data.txn_id} · ` +
+                        (data.payment_status === 'PAID'
+                            ? `$${data.total.toFixed(2)} paid via ${paymentDetail()}.`
+                            : `$${data.total.toFixed(2)} due on delivery.`);
+                    document.getElementById('success-view').hidden = false;
+                    updateCartBadge();
+                    setTimeout(() => { window.location.href = '/orders'; }, 2200);
+                })
+                .catch(err => {
+                    overlay.hidden = true;
+                    errorBox.textContent = 'Payment failed: ' + err.message;
+                    errorBox.hidden = false;
+                });
+        }, SETTLE_MS);
+    });
+</script>
+{% endblock %}

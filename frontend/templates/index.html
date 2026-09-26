@@ -1,0 +1,41 @@
+{% extends 'base.html' %}
+{% from 'partials/_book_card.html' import book_card %}
+
+{% block title %}READ RIGHT — Books that outlived their centuries{% endblock %}
+
+{% block content %}
+{% if books %}
+<section class="hero">
+    <div>
+        <span class="eyebrow">Staff picks</span>
+        <h1>Books that outlived their centuries.</h1>
+        <p>From Tolstoy's battlefields to Murakami's Tokyo — classics in stock and shipped the same day.</p>
+        <a class="btn" href="#shelf">Browse the shelf</a>
+    </div>
+    <div class="hero-shelf">
+        {% for book in books[:3] %}
+        <a href="/books/{{ book._id }}">
+            <img class="cover" src="data:image/jpeg;base64,{{ book.cover_image }}"
+                 alt="Cover of {{ book.title }}">
+        </a>
+        {% endfor %}
+    </div>
+</section>
+{% endif %}
+
+<section id="shelf">
+    <div class="shelf-head">
+        <h2>Best selling books</h2>
+    </div>
+    {% if load_error %}
+        <p class="empty-state">The catalog is temporarily unavailable — {{ load_error }}</p>
+    {% elif not books %}
+        <p class="empty-state">No books on the shelf yet. Check back soon.</p>
+    {% else %}
+    <div class="grid" id="books-grid">
+        {% for book in books %}{{ book_card(book) }}{% endfor %}
+    </div>
+    <p class="empty-state" id="no-results" hidden>No books match your search.</p>
+    {% endif %}
+</section>
+{% endblock %}

@@ -1,0 +1,23 @@
+{% extends 'base.html' %}
+{% from 'partials/_book_card.html' import book_card %}
+
+{% block title %}{{ category_name }} — READ RIGHT{% endblock %}
+
+{% block content %}
+<div class="crumb"><a href="/">Home</a> / Categories / {{ category_name }}</div>
+<div class="cat-head">
+    <h1>{{ category_name }}</h1>
+    <span class="count">{{ books|length }} title{{ 's' if books|length != 1 }}</span>
+</div>
+
+{% if load_error %}
+    <p class="empty-state">The catalog is temporarily unavailable — {{ load_error }}</p>
+{% elif not books %}
+    <p class="empty-state">No books in this category yet.</p>
+{% else %}
+<div class="grid" id="books-grid">
+    {% for book in books %}{{ book_card(book) }}{% endfor %}
+</div>
+<p class="empty-state" id="no-results" hidden>No books match your search.</p>
+{% endif %}
+{% endblock %}

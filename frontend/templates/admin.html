@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin — READ RIGHT</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/store.css') }}">
+</head>
+<body>
+    <header class="store-top">
+        <a class="brand" href="/admin">READ<em>RIGHT</em>
+            <span class="admin-tag">Admin</span>
+        </a>
+        <div class="store-search"></div>
+        <div class="store-actions">
+            <span class="order-meta">Signed in as {{ session.get('admin_name', 'admin') }}</span>
+            <a href="/">View storefront</a>
+            <a class="btn ghost" href="/admin/logout">Log out</a>
+        </div>
+    </header>
+    <main>
+        <div class="crumb">Admin</div>
+        <div class="cat-head">
+            <h1>Users &amp; orders</h1>
+            {% if users %}<span class="count">{{ users|length }} user{{ 's' if users|length != 1 }}</span>{% endif %}
+        </div>
+        <input type="text" id="user-search" class="admin-search" placeholder="Search users by name or email…">
+
+        {% if load_error %}
+            <p class="empty-state">Admin service unavailable — {{ load_error }}</p>
+        {% elif not users %}
+            <div class="empty-state big"><p>No registered users yet.</p></div>
+        {% else %}
+        <div id="admin-users-list" class="admin-users">
+            {% for u in users %}
+            <article class="admin-user-card" data-user-id="{{ u.user_id }}"
+                      data-is-admin="{{ 'true' if u.is_admin else 'false' }}"
+                      data-disabled="{{ 'true' if u.disabled else 'false' }}">
+                <div class="admin-user-head-row">
+                    <button type="button" class="admin-user-head" data-toggle>
+                        <div>
+                            <h3>{{ u.name }}
+                                {% if u.is_admin %}<span class="pill in">Admin</span>{% endif %}
+                                {% if u.disabled %}<span class="pill out">Disabled</span>{% endif %}
+                            </h3>
+                            <p class="order-meta">{{ u.email }}</p>
+                        </div>
+                        <div class="admin-user-stats">
+                            <span class="pill {{ 'in' if u.order_count else 'low' }}">
+                                {{ u.order_count }} order{{ 's' if u.order_count != 1 }}
+                            </span>
+                            <span class="price">${{ '%.2f'|format(u.total_spent) }}</span>
+                            <span class="chevron" aria-hidden="true">▾</span>
+                        </div>
+                    </button>
+                    <div class="admin-user-actions">
+                        <button type="button" class="btn ghost role-btn">{{ 'Revoke admin' if u.is_admin else 'Make admin' }}</button>
+                        <button type="button" class="btn ghost status-btn">{{ 'Enable' if u.disabled else 'Disable' }}</button>
+                    </div>
+                </div>
+                <div class="admin-user-orders" hidden></div>
+            </article>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <div class="cat-head">
+            <h1>Catalog &amp; stock</h1>
+        </div>
+        <input type="text" id="book-search" class="admin-search" placeholder="Search books by title or author…">
+        <form id="add-book-form" class="admin-add-form">
+            <input type="text" name="title" placeholder="Title" required>
+            <input type="text" name="author" placeholder="Author" required>
+            <input type="text" name="category" placeholder="Category" required>
+            <input type="number" name="price" placeholder="Price" min="0" step="0.01" required>
+            <input type="number" name="stock" placeholder="Stock" min="0" value="0" required>
+            <button type="submit" class="btn">Add book</button>
+        </form>
+        <label class="admin-bulk-label">
+            Bulk update stock from CSV (format: <code>title,stock</code> per line)
+            <input type="file" id="bulk-stock-file" accept=".csv,text/csv">
+        </label>
+        <div id="admin-books" class="admin-users">
+            <p class="empty-state">Loading catalog…</p>
+        </div>
+
+        <div class="cat-head">
+            <h1>Activity log</h1>
+        </div>
+        <div id="admin-audit-log" class="admin-audit-log">
+            <p class="empty-state">Loading activity…</p>
+        </div>
+    </main>
+    <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+    <script src="{{ url_for('static', filename='js/admin.js') }}"></script>
+</body>
+</html>

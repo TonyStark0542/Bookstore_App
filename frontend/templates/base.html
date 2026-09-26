@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}READ RIGHT — Bookstore{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/store.css') }}">
+</head>
+<body data-auth="{{ '1' if current_user.id else '0' }}">
+    <header class="store-top">
+        <a class="brand" href="/">READ<em>RIGHT</em></a>
+        <div class="store-search">
+            <form class="search-box" id="search-form" role="search">
+                <input type="text" id="search-input" placeholder="Search by title or author…"
+                       aria-label="Search books">
+                <button type="submit" aria-label="Search">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                         stroke-width="2.5" stroke-linecap="round" aria-hidden="true">
+                        <circle cx="11" cy="11" r="7"></circle>
+                        <path d="m20 20-4.2-4.2"></path>
+                    </svg>
+                </button>
+            </form>
+        </div>
+        <div class="store-actions">
+            <a href="/orders">Track order</a>
+            <a class="cart-badge" href="/cart" aria-label="Cart">🛒<b id="cart-badge" hidden>0</b></a>
+            {% if current_user.id %}
+                {% if current_user.is_admin %}
+                    <a class="btn ghost" href="/admin">Admin panel</a>
+                {% endif %}
+                <span class="user-chip" title="Signed in as {{ current_user.name }}">
+                    <span class="avatar" aria-hidden="true">{{ current_user.name[0]|upper }}</span>
+                    <span class="user-name">{{ current_user.name }}</span>
+                </span>
+                <a class="btn ghost" href="/logout">Log out</a>
+            {% else %}
+                <a class="btn ghost" href="/login">Log in</a>
+            {% endif %}
+        </div>
+    </header>
+
+    {% include 'partials/_categories.html' %}
+
+    <main>
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer class="store-footer">
+        <span>© 2026 READ RIGHT</span>
+        <nav>
+            <a href="#">Privacy</a>
+            <a href="#">Terms</a>
+            <a href="#">Refunds</a>
+            <a href="#">FAQ</a>
+            <a href="#">Contact</a>
+        </nav>
+    </footer>
+
+    <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+    <script src="{{ url_for('static', filename='js/catalog.js') }}"></script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>
