@@ -18,6 +18,12 @@ def add_to_cart(client, headers, user_id, book, qty):
 # ============================================================================
 # Internal service token gate (@app.before_request)
 # ============================================================================
+def test_health_needs_no_token_and_reports_ok(client):
+    resp = client.get("/health")
+    assert resp.status_code == 200
+    assert resp.get_json() == {"status": "ok"}
+
+
 def test_missing_token_is_forbidden(client):
     resp = client.get("/api/books")
     assert resp.status_code == 403

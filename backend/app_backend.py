@@ -42,8 +42,17 @@ if not INTERNAL_SERVICE_TOKEN:
 
 @app.before_request
 def check_internal_token():
-    if request.headers.get("X-Internal-Token") != INTERNAL_SERVICE_TOKEN:
+    # /health is exempt so Docker's healthcheck needn't carry the token; it returns no data
+    if request.path != "/health" and request.headers.get("X-Internal-Token") != INTERNAL_SERVICE_TOKEN:
         return jsonify({"error": "Forbidden"}), 403
+
+@app.route('/health', methods=['GET'])
+def health():
+    try:
+        client.admin.command('ping')
+        return jsonify({"status": "ok"}), 200
+    except Exception:
+        return jsonify({"status": "unhealthy"}), 503
 
 FREE_SHIPPING_THRESHOLD = 25.00
 SHIPPING_FEE = 4.99
