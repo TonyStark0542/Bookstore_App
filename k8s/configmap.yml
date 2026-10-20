@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cm-app
+data:
+  MONGO_URI: mongodb://mongo-service:27017/bookstore
+  CATALOG_API_URL: http://backend-service:8000

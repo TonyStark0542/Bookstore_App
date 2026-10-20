@@ -19,13 +19,26 @@ spec:
         image: tonystark0542/bookstore-backend:v1
         ports:
         - containerPort: 8000
-        env:
-        - name: MONGO_URI
-          value: "mongodb://mongo-service:27017/bookstore"
         resources: 
           limits:
             memory: "512Mi"
             cpu: "500m"
+        env:
+        - name: MONGO_URI
+          valueFrom:
+            configMapKeyRef:
+              name: cm-app
+              key: MONGO_URI
+        - name: GEMINI_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: secret-app
+              key: GEMINI_API_KEY
+        - name: INTERNAL_SERVICE_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: secret-app
+              key: INTERNAL_SERVICE_TOKEN
 
 ---
 apiVersion: v1

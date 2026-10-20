@@ -20,12 +20,31 @@ spec:
         ports:
         - containerPort: 5001
         env:
-        - name: BACKEND_URL
-          value: "http://backend-service:8000"
+        - name: CATALOG_API_URL
+          valueFrom:
+            configMapKeyRef:
+              name: cm-app
+              key: CATALOG_API_URL
+        - name: SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: secret-app
+              key: SECRET_KEY
+        - name: ADMIN_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: secret-app
+              key: ADMIN_PASSWORD
+        - name: INTERNAL_SERVICE_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: secret-app
+              key: INTERNAL_SERVICE_TOKEN
         resources:
           limits:
             memory: "512Mi"
             cpu: "500m"
+        
 
 ---
 apiVersion: v1

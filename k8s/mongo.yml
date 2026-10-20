@@ -1,3 +1,15 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mongo-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: standard   # kind's default (local-path)
+  resources:
+    requests:
+      storage: 1Gi
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -6,6 +18,8 @@ metadata:
     app: mongodb
 spec:
   replicas: 1
+  strategy:
+    type: Recreate   # RWO volume can't be held by old + new pod at once
   selector:
     matchLabels:
       app: mongodb
@@ -23,11 +37,28 @@ spec:
             limits:
               memory: "1Gi"
               cpu: "1"
+          volumeMounts:
+            - name: mongo-data
+              mountPath: /data/db
+            # Same paths as docker-compose; the init script runs only when /data/db is empty
+            - name: mongo-init
+              mountPath: /docker-entrypoint-initdb.d/init-restore.sh
+              subPath: init-restore.sh
+            - name: mongo-init
+              mountPath: /backup/db_backup.archive
+              subPath: db_backup.archive
+      volumes:
+        - name: mongo-data
+          persistentVolumeClaim:
+            claimName: mongo-pvc
+        - name: mongo-init
+          configMap:
+            name: mongo-init   # kubectl create configmap mongo-init --from-file=backend/database_backup/db_backup.archive --from-file=backend/init-restore.sh
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: mongo-service    # DNS name used by backend: mongodb-service:27017
+  name: mongo-service    # DNS name used by backend: mongo-service:27017
 spec:
   type: ClusterIP          # Internal-only routing
   selector:
