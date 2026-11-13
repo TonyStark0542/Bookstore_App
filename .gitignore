@@ -5,3 +5,4 @@
 .claude/
 k8s/secrets.yml
 CLAUDE.md
+data-engineer/data-pipeline/data/

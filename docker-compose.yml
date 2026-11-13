@@ -4,6 +4,8 @@ services:
   # TIER 1: The Secure Database Engine
   mongodb-backend:
     image: mongo:4.4.18
+    ports:
+      - "27018:27017"
     container_name: mongodb-backend
     restart: always
     cpus: 2
